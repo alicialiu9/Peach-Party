@@ -1,0 +1,707 @@
+#include "Actor.h"
+#include "StudentWorld.h"
+#include "Board.h"
+
+// Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
+
+
+//ACTOR IMPLEMENTATION
+
+int Actor::getStatus()
+{
+    return status;
+}
+
+//PLAYER IMPLEMENTATION
+int Player::getStars() const {return n_stars; }
+
+int Player::getCoins() const {return n_coins; }
+
+int Player::getWalkingDirection() const {return walking_direction; }
+
+void Player::setWalkingDirection(int direction) {walking_direction = direction; }
+
+void Player::updateCoins(int amt) {n_coins += amt;}
+
+void Player::updateStars(int amt) {n_stars += amt;}
+
+void Player::resetCoins(){ n_coins = 0;}
+
+void Player::resetStars() { n_stars = 0;}
+
+int Player::get_pState() const {return state;}
+
+bool Player::isWaiting()
+{
+    if (state == WAITING_TO_ROLL)
+        return true;
+    return false;
+}
+bool Player::isWalking()
+{
+    if (state == WALKING)
+        return true;
+    return false;
+}
+
+void Player::teleport_me_to_random_sq()
+{
+    int x = getX();
+    int y = getY();
+    getWorld()->get_random_square_location(x,y);
+    moveTo(x*SPRITE_WIDTH, y*SPRITE_HEIGHT);
+}
+
+void Player::swap_positions(Player* other)
+{
+    int tempX = getX();
+    int tempY = getY();
+    moveTo(other->getX(), other->getY());
+    other->moveTo(tempX, tempY) ;
+    
+    //switch ticks left
+    int temp_ticks_left = ticks_to_move;
+    ticks_to_move = other->ticks_to_move;
+    other->ticks_to_move = temp_ticks_left;
+
+    //switch walk direction
+    int temp_walk_dir = walking_direction;
+    walking_direction = other->walking_direction;
+    other->walking_direction = temp_walk_dir;
+
+    //switch sprite direction
+    int temp_sprite_dir = getDirection();
+    setDirection(other->getDirection());
+    other->setDirection(temp_sprite_dir);
+
+    //switch state (roll/walk)
+    int temp_state = state;
+    state = other->state;
+    other->state = temp_state;
+}
+
+void Player::swap_stars()
+{
+    Player* other_p = getWorld()->get_other_player(this);
+    int temp_stars = getStars();
+    this->resetStars();
+    this->updateStars(other_p->getStars());
+    other_p->resetStars();
+    other_p->updateStars(temp_stars);
+}
+void Player::swap_coins()
+{
+    Player* other_p = getWorld()->get_other_player(this);
+    int temp_coins = getCoins();
+    this->resetCoins();
+    this->updateCoins(other_p->getCoins());
+    other_p->resetCoins();
+    other_p->updateCoins(temp_coins);
+}
+void Player::equip_with_vortex_projectile()
+{
+    if (has_Vortex == false)
+   // equip with new vortex
+        has_Vortex = true;
+}
+
+bool Player::if_have_vortex() const
+{
+    return has_Vortex;
+}
+
+void Player::set_at_dir_square()
+{
+    at_dir_square = true;
+}
+
+bool Player::get_at_dir_square() const
+{
+    return at_dir_square;
+}
+
+bool Player::available_dir(int dir)
+{
+    int currentX = getX();
+    int currentY = getY();
+    getPositionInThisDirection(dir, 16, currentX, currentY);
+    if (getBoard()->getContentsOf(currentX/16, currentY/16) != Board::empty)
+        return true;
+    return false;
+}
+
+bool Player::is_at_fork()
+{
+    bool at_fork = false;
+    int num_paths = 0;
+    switch (walking_direction)
+    {
+        case right:
+        {
+            if (available_dir(up))
+                num_paths++;
+            if (available_dir(down))
+                num_paths++;
+            if (available_dir(right))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            if (!available_dir(left))
+                at_fork = false;
+            break;
+        }
+        case left:
+        {
+            if (available_dir(up))
+                num_paths++;
+            if (available_dir(down))
+                num_paths++;
+            if (available_dir(left))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+        case up:
+        {
+            if (available_dir(left))
+                num_paths++;
+            if (available_dir(right))
+                num_paths++;
+            if (available_dir(up))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+        case down:
+        {
+            if (available_dir(left))
+                num_paths++;
+            if (available_dir(right))
+                num_paths++;
+            if (available_dir(down))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+    }
+    return at_fork;
+}
+
+void Player::doSomething()
+{
+    if (state == WAITING_TO_ROLL)
+    {
+        // if invalid direction from teleported
+        //pick random valid direction that has a square
+        //update walking direction 180 for left, 0 for all others
+        switch (getWorld()->getAction(player_num))
+        {
+            case ACTION_ROLL:
+            {
+                die_roll = randInt(1,10);
+                ticks_to_move = die_roll * 8;
+                state = WALKING;
+                break;
+            }
+            case ACTION_FIRE:
+            {
+                // introduce new vortex
+                getWorld()->playSound(SOUND_PLAYER_FIRE);
+                has_Vortex = false;
+                break;
+            }
+            default:
+                return;
+        }
+    }
+    if (state == WALKING)
+    {
+        if (!get_at_dir_square()) // if not at a direction square
+        {
+            if (is_at_fork())
+            {
+                int player_action = getWorld()->getAction(player_num);
+                if (player_action == ACTION_LEFT || player_action == ACTION_RIGHT || player_action == ACTION_UP || player_action == ACTION_DOWN)
+                {
+                    if (player_action == ACTION_LEFT)
+                    {
+                        if (walking_direction!=left && available_dir(left))
+                        {
+                            walking_direction = left;
+                            setDirection(left);
+                        }
+                    }
+                    else if (player_action == ACTION_RIGHT)
+                    {
+                        if (walking_direction!=right && available_dir(right))
+                        {
+                            walking_direction = right;
+                            setDirection(right);
+                        }
+                    }
+                    else if (player_action == ACTION_UP)
+                    {
+                        if (walking_direction!=up && available_dir(up))
+                        {
+                            walking_direction = up;
+                            setDirection(right);
+                        }
+                    }
+                    else if (player_action == ACTION_DOWN)
+                    {
+                        if (walking_direction!=down && available_dir(down))
+                        {
+                            walking_direction = down;
+                            setDirection(right);
+                        }
+                    }
+                }
+            }
+//            else return;
+        }
+        
+        
+        int xnew = getX();
+        int ynew = getY();
+        getPositionInThisDirection(walking_direction,16, xnew, ynew);
+        if (xnew % 16 == 0 && ynew % 16 == 0)
+        {
+            if (getBoard()->getContentsOf(xnew/SPRITE_WIDTH, ynew/SPRITE_HEIGHT) == Board::empty)
+            {
+                if (walking_direction == right || walking_direction == left)
+                {
+                    if(available_dir(up))
+                        setWalkingDirection(up);
+                    else
+                        setWalkingDirection(down);
+                }
+                else
+                {
+                    if(available_dir(right))
+                        setWalkingDirection(right);
+                    
+                    else
+                        setWalkingDirection(left);
+                }
+                
+                if (getWalkingDirection() == left)
+                    setDirection(left);
+                else
+                    setDirection(right);
+            }
+        }
+        moveAtAngle(getWalkingDirection(),2);
+        ticks_to_move --;
+        if (ticks_to_move == 0 )
+            state = WAITING_TO_ROLL;
+    }
+    
+}
+
+// ACTIVATEONPLAYER IMPLEMENTATION
+bool ActivateOnPlayer::overlap(Player* player, Actor* actor)
+{
+    if (player->getX() == actor->getX()  && player->getY() == actor->getY())
+        return true;
+    return false; 
+}
+
+Player* ActivateOnPlayer::r_Peach() const
+{
+    return getWorld()->getPeach();
+}
+
+Player* ActivateOnPlayer::r_Yoshi() const
+{
+    return getWorld()->getYoshi();
+}
+
+void ActivateOnPlayer::setActivated(Player* player, bool value)
+{
+    if (player == r_Peach())
+        activated_p1 = value;
+    
+    if (player == r_Yoshi())
+        activated_p2 = value;
+}
+
+bool ActivateOnPlayer::isActivated(Player* player) const
+{
+    if (player == r_Peach())
+        return activated_p1;
+    
+    else
+        return activated_p2;
+}
+
+bool ActivateOnPlayer::getActivated(Player* player)
+{
+    if (player == r_Peach())
+        return activated_p1;
+    
+    else
+        return activated_p2;
+}
+
+void ActivateOnPlayer::deactivate(Player* player)
+{
+    if (player == r_Peach())
+        activated_p1 = false;
+    else
+        activated_p2 = false;
+}
+
+bool ActivateOnPlayer::new_activation(Player* player)
+{
+    if (overlap(player, this))
+    {
+        if (!isActivated(player))
+        {
+            setActivated(player,true);
+            return true;
+        }
+    }
+    else
+        deactivate(player);
+    return false;
+}
+
+bool ActivateOnPlayer::new_player_landed(Player* player)
+{
+    if (new_activation(player) && player->get_pState() == WAITING_TO_ROLL)
+        return true;
+    return false;
+}
+bool ActivateOnPlayer::new_player_moved_over(Player* player)
+{
+    if (new_activation(player) && (player->get_pState() == WALKING))
+        return true;
+    return false;
+}
+
+
+// COINSQUARE IMPLEMENTATION
+void CoinSquare::doSomething()
+{
+    if (this->getStatus() == DEAD)
+        return;
+    
+    if (new_player_landed(r_Yoshi()))
+        change_coins(r_Yoshi());
+    
+    if (new_player_landed(r_Peach()))
+        change_coins(r_Peach());
+}
+        
+// BLUECOINSQUARE IMPLEMENTATION
+void BlueCoinSquare::change_coins(Player* player)
+{
+    player->updateCoins(3);
+    getWorld()->playSound(SOUND_GIVE_COIN);
+}
+        
+
+// REDCOINSQUARE IMPLEMENTATION
+void RedCoinSquare::change_coins(Player* player)
+{
+    if (player->getCoins() >= 3)
+        player->updateCoins(-3);
+    else
+        player->resetCoins();
+        
+    getWorld()->playSound(SOUND_TAKE_COIN);
+}
+        
+// STARSQUARE IMPLEMENTATION
+
+void StarSquare::giveStar(Player* player)
+{
+    if (player->getCoins() < 20)
+        return;
+    
+    else
+    {
+        player->updateCoins(-20);
+        player->updateStars(1);
+        getWorld()->playSound(SOUND_GIVE_STAR);
+    }
+}
+
+void StarSquare::doSomething()
+{
+    if (new_activation(r_Yoshi()) && (r_Yoshi()->isWaiting() || r_Yoshi()->isWalking()))
+    {
+        giveStar(r_Yoshi());
+        std::cerr << "yoshi went over star" << std::endl;
+    }
+    
+    if (new_activation(r_Peach()) && (r_Peach()->isWaiting() || r_Peach()->isWalking()))
+    {
+        giveStar(r_Peach());
+        std::cerr << "peach went over star" << std::endl;
+    }
+        
+}
+
+//BANKSQUARE IMPLEMENTATION
+void BankSquare::withdraw(Player* player)
+{
+    player->updateCoins(getWorld()->get_bank_coins());
+    getWorld()->reset_bank_coins();
+    getWorld()->playSound(SOUND_WITHDRAW_BANK);
+}
+
+void BankSquare::deposit(Player* player)
+{
+    int curr_bal = player->getCoins();
+    if (curr_bal >= 5)
+    {
+        player->updateCoins(-5);
+        getWorld()->deposit_bank_coins(5);
+    }
+    else
+    {
+        player->resetCoins();
+        getWorld()->deposit_bank_coins(curr_bal);
+    }
+    getWorld()->playSound(SOUND_DEPOSIT_BANK);
+
+}
+
+//FIX
+void BankSquare::doSomething()
+{
+    if (new_player_landed(r_Yoshi()))
+    {
+        std::cerr << "yoshi took from bank" << std::endl;
+        withdraw(r_Yoshi());
+    }
+    
+    if (overlap(r_Yoshi(), this) && r_Yoshi()->isWalking())
+    {
+        std::cerr <<"yoshi walked over bank square" << std::endl;
+        deposit(r_Yoshi());
+    }
+    if (new_player_landed(r_Peach()))
+    {
+        std::cerr << "peach took from bank" << std::endl;
+        withdraw(r_Peach());
+    }
+    
+    if (overlap(r_Peach(),this) && r_Peach()->isWalking())
+    {
+        std::cerr <<"peach walked over bank square" << std::endl;
+        deposit(r_Peach());
+    }
+}
+            
+//DIRECTIONALSQAURE IMPLEMENTATION
+int  DirectionalSquare::getForcingDir() const
+{
+    return d_start_dir;
+}
+
+void DirectionalSquare::doSomething()
+{
+    if (new_activation(r_Yoshi()) && (r_Yoshi()->isWaiting() || r_Yoshi()->isWalking()))
+    {
+        r_Yoshi()->set_at_dir_square();
+        r_Yoshi()->setWalkingDirection(getForcingDir());
+        if (getForcingDir() == 180)
+            r_Yoshi()->setDirection(left);
+        else
+            r_Yoshi()->setDirection(right);
+        std::cerr << "yoshi was forced to change walking direction " << getForcingDir() << std::endl;
+    }
+    if (new_activation(r_Peach()) && (r_Peach()->isWaiting() || r_Peach()->isWalking()))
+    {
+        r_Peach()->set_at_dir_square();
+        r_Peach()->setWalkingDirection(getForcingDir());
+        if (getForcingDir() == 180)
+            r_Peach()->setDirection(left);
+        else
+            r_Peach()->setDirection(right);
+        std::cerr << "peach was forced to change walking direction " << getForcingDir() << std::endl;
+    }
+}
+
+//DROPPINGSQAURE IMPLEMENTATION
+void DroppingSquare::doActivity(Player *player)
+{
+    int option_n =  randInt(0,1);
+    
+    if (option_n == 0)
+    {
+        if (player->getCoins() >= 10)
+            player->updateCoins(-10);
+        else
+            player->resetCoins();
+    }
+    
+    else if (option_n == 1)
+    {
+        if (player->getStars() >= 1)
+            player->updateStars(-1);
+    }
+    
+    getWorld()->playSound(SOUND_DROPPING_SQUARE_ACTIVATE);
+}
+
+
+void DroppingSquare::doSomething()
+{
+    if (new_player_landed(r_Yoshi()))
+    {
+        std::cerr << "yoshi dropping square" << std::endl;
+        doActivity(r_Yoshi());
+    }
+    if (new_player_landed(r_Peach()))
+    {
+        std::cerr << "peach dropping square" << std::endl;
+        doActivity(r_Peach());
+    }
+}
+
+
+//EVENTSQAURE IMPLEMENTATION
+
+void EventSquare::inform_teleport(Player* player)
+{
+    player->teleport_me_to_random_sq();
+    getWorld()->playSound(SOUND_PLAYER_TELEPORT);
+}
+void EventSquare::inform_swap(Player* player, Player* other)
+{
+    player->swap_positions(other);
+    std::cerr << "players swapped" << std::endl;
+    int temp = getActivated(player);
+    setActivated(player,getActivated(other));
+    setActivated(other, temp);
+    getWorld()->playSound(SOUND_PLAYER_TELEPORT);
+}
+
+void EventSquare::give_vortex(Player* player)
+{
+    player->equip_with_vortex_projectile();
+    getWorld()->playSound(SOUND_GIVE_VORTEX);
+}
+
+void EventSquare::doActivity(Player* player, Player* other)
+{
+    int action_num = randInt(0,2);
+    if (action_num == 0)
+    {
+        inform_teleport(player);
+        std::cerr << "teleported me" << std::endl;
+    }
+    else if (action_num == 1)
+    {
+        std::cerr << "swap square " << std::endl;
+        inform_swap(player,other);
+    }
+    else
+    {
+        std::cerr << "vortex squre" << std::endl;
+        give_vortex(player);
+    }
+}
+
+void EventSquare::doSomething()
+{
+    if (new_player_landed(r_Yoshi()))
+    {
+        std::cerr << "yoshi" << std::endl;
+        doActivity(r_Yoshi(), r_Peach());
+    }
+    if (new_player_landed(r_Peach()))
+    {
+        std::cerr << "peach" << std::endl;
+        doActivity(r_Peach(), r_Yoshi());
+    }
+}
+
+//VORTEX IMPLEMENTATION
+bool Vortex::overlap_with_Baddie(Actor* actor)
+{
+    return true; 
+}
+
+void Vortex::doSomething()
+{
+    if (getStatus() == DEAD)
+        return;
+        
+    moveAtAngle(v_start_dir, 2);
+    
+    int vortex_x = getX();
+    int vortex_y = getY();
+    
+    if(vortex_x <= 0 || vortex_x >= VIEW_WIDTH || vortex_y<=0 || vortex_y >= VIEW_HEIGHT)
+    {
+        changeStatus(DEAD);
+    }
+}
+
+// ENEMY IMPLEMENTATION
+
+void Enemy::doActivity(Player* player)
+{
+    if (enemy_state == E_PAUSED)
+    {
+        if (new_player_landed(player))
+        {
+            int random = randInt(0,1);
+            if (random == 0)
+            {
+                player->resetCoins();
+                player->resetStars();
+                getWorld()->playSound(SOUND_BOWSER_ACTIVATE);
+            }
+            
+        }
+        pause_counter --;
+        if ( pause_counter <= 0)
+        {
+            travel_distance = randInt(1,10);
+            ticks_to_move = travel_distance * 8;
+            for(;;)
+            {
+                if
+                
+            }
+            
+            
+        }
+    }
+        
+    
+    else if (enemy_state == E_WALKING)
+    {
+        
+    }
+    
+}
+
+
+void Enemy::doSomething()
+{
+    doActivity(r_Yoshi());
+    doActivity(r_Peach());
+    
+}
+
+
+//BOWSER IMPLEMENTATION
+void Bowser::doSomething()
+{
+    
+}
+
+//BOO IMPLEMENTATION
+void Boo::doSomething()
+{
+    
+}
