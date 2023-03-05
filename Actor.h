@@ -217,7 +217,7 @@ class Enemy: public ActivateOnPlayer
         virtual void doSomething();
         void doActivity(Player* player);
         virtual void specialPause(Player* player) = 0;
-        virtual void specialWalk(Player* player)= 0;
+        virtual void specialWalk()= 0;
         void change_to_new_legal_dir();
         bool is_a_square() const;
         void setWalkingDirection(int dir);
@@ -238,7 +238,7 @@ class Bowser : public Enemy
     public:
         Bowser(Board* b, StudentWorld* world, int x, int y): Enemy(b,world,IID_BOWSER, x, y){};
         virtual void specialPause(Player* player);
-        virtual void specialWalk(Player* player);
+        virtual void specialWalk();
         virtual int rand_squares_to_move();
     private:
       
@@ -249,7 +249,7 @@ class Boo : public Enemy
     public:
         Boo(Board* b, StudentWorld* world, int x, int y): Enemy(b,world,IID_BOO, x, y){};
         virtual void specialPause(Player* player);
-        virtual void specialWalk(Player* player);
+        virtual void specialWalk();
         virtual int rand_squares_to_move();
     private:
 };

@@ -32,56 +32,25 @@ bool Actor::is_at_fork(int dir)
     int num_paths = 0;
     switch (dir)
     {
-        case right:
-        {
-            if (!available_dir(left))
-            {
-                at_fork = false;
-                break;
-            }
-            if (available_dir(up))
-                num_paths++;
-            if (available_dir(down))
-                num_paths++;
-            if (available_dir(right))
-                num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            break;
-        }
-        case left:
-        {
-            if (available_dir(up))
-                num_paths++;
-            if (available_dir(down))
-                num_paths++;
-            if (available_dir(left))
-                num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            break;
-        }
+//        case right:
+//            if (!available_dir(left))
+//            {
+//                at_fork = false;
+//                break;
+//            }
+//        case left:
         case up:
+//        case down:
         {
-            if (available_dir(left))
-                num_paths++;
-            if (available_dir(right))
-                num_paths++;
             if (available_dir(up))
                 num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            break;
-        }
-        case down:
-        {
             if (available_dir(left))
-                num_paths++;
-            if (available_dir(right))
                 num_paths++;
             if (available_dir(down))
                 num_paths++;
-            if (num_paths >= 2)
+            if (available_dir(right))
+                num_paths++;
+            if (num_paths >= 3)
                 at_fork = true;
             break;
         }
@@ -895,7 +864,7 @@ void Enemy::doActivity(Player* player)
         {
             enemy_state = E_PAUSED;
             pause_counter = 180;
-            specialWalk(player);
+            specialWalk();
         }
     }
 }
@@ -925,14 +894,13 @@ void Bowser::specialPause(Player* player)
     }
 }
 
-void Bowser::specialWalk(Player* player)
+void Bowser::specialWalk()
 {
     int r = randInt(1,4);
     if (r == 1)
     {
-        Actor* square = getWorld()->get_square_at_location(getX(), getY());
-        delete square;
-        getWorld()->add_actor(new DroppingSquare(getBoard(), getWorld(), getX()*SPRITE_WIDTH, getY()* SPRITE_HEIGHT));
+        getWorld()->add_dropping_square_at_location(getX(), getY());
+        getWorld()->add_actor(new DroppingSquare(getBoard(),getWorld(),getX(),getY()));
         getWorld()->playSound(SOUND_DROPPING_SQUARE_CREATED);
     }
     
@@ -958,7 +926,7 @@ void Boo::specialPause(Player* player)
     getWorld()->playSound(SOUND_BOO_ACTIVATE);
 }
 
-void Boo::specialWalk(Player* player)
+void Boo::specialWalk()
 {
     
 }

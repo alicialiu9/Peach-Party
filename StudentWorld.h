@@ -27,9 +27,10 @@ public:
      // like a player, enemy or vortex can move onto the specified location
      bool is_there_a_square_at_location(int dest_x, int dest_y) const;
      // Get a pointer to the square at the specified location
-     Actor* get_square_at_location(double x, double y) const;
+     Actor* get_square_at_location(int x, int y) const;
     //return baddie that overlaps with vortex
-    Actor* get_impacted_baddie(double x, double y)const; 
+    Actor* get_impacted_baddie(int x, int y)const;
+    void add_dropping_square_at_location(int x, int y);
      int get_bank_coins() const;
      void deposit_bank_coins(int coins);
      void reset_bank_coins();

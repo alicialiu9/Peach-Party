@@ -53,7 +53,7 @@ int StudentWorld::init()
                         }
                         case Board::blue_coin_square:
                         {
-                            add_actor(new BlueCoinSquare(bd,this, x*SPRITE_WIDTH, y*SPRITE_HEIGHT));
+                            add_actor(new BlueCoinSquare(bd, this, x*SPRITE_WIDTH, y* SPRITE_HEIGHT));
                             break;
                         }
                         case Board::red_coin_square:
@@ -217,7 +217,7 @@ bool StudentWorld::is_there_a_square_at_location(int dest_x, int dest_y) const
 }
 
 // Get a pointer to the square at the specified location
-Actor* StudentWorld::get_square_at_location(double x, double y) const
+Actor* StudentWorld::get_square_at_location(int x, int y) const
 {
     for (int i = 0; i< all_actors.size(); i++)
     {
@@ -227,7 +227,20 @@ Actor* StudentWorld::get_square_at_location(double x, double y) const
     return nullptr;
 }
 
-Actor* StudentWorld::get_impacted_baddie(double x, double y)const
+void StudentWorld::add_dropping_square_at_location(int x, int y)
+{
+    for (int i = 0; i < all_actors.size(); i++)
+    {
+        if (all_actors[i]->is_a_square() && all_actors[i]->getX() == x && all_actors[i]->getY() == y)
+        {
+            delete all_actors[i];
+            all_actors[i] = nullptr;
+            break;
+        }
+    }
+}
+
+Actor* StudentWorld::get_impacted_baddie(int x, int y)const
 {
     for (int i = 0; i< all_actors.size(); i++)
     {
@@ -272,7 +285,7 @@ void StudentWorld::get_random_square_location(int &x, int &y) const
         int random_x = randInt (0, 15);
         int random_y = randInt (0, 15);
         Board::GridEntry square = bd->getContentsOf(random_x, random_y);
-        if (square != Board::empty && square != Board::player && square != Board::bowser && square != Board::boo && (x != random_x || y != random_y))
+        if (square != Board::empty && square != Board::player && (x != random_x || y != random_y))
         {
             x = random_x;
             y = random_y;
