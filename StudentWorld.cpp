@@ -125,15 +125,15 @@ int StudentWorld::init()
 string StudentWorld::setGameStatTextHelper()
 {
     ostringstream oss;
-    oss << "P1 Roll: ";
-    oss << "Stars: " << peach->getStars();
+    oss << "P1 Roll: " << peach->get_dice();
+    oss << " Stars: " << peach->getStars();
     oss << " $$: " <<peach->getCoins();
     if (peach->if_have_vortex())
         oss << " VOR";
     oss << " | Time: " << timeRemaining();
     oss << " | Bank: " << get_bank_coins();
-    oss << " | P2 Roll: ";
-    oss<<"Stars: " << yoshi->getStars();
+    oss << " | P2 Roll: " << yoshi->get_dice();
+    oss<<" Stars: " << yoshi->getStars();
     oss<< " $$: " << yoshi->getCoins();
     if (yoshi->if_have_vortex())
         oss << " VOR";

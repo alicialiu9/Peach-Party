@@ -112,6 +112,8 @@ bool Player::is_a_square() const {return false;}
 
 bool Player::can_be_hit_by_vortex() const {return false;}
 
+int Player::get_dice() const {return die_roll;}
+
 void Player::give_vortex()
 {
     if (has_Vortex == false)
@@ -188,7 +190,16 @@ void Player::swap_coins()
 }
 void Player::equip_with_vortex_projectile()
 {
-    getWorld()->add_actor(new Vortex(getBoard(),getWorld(),getX()+ 16, getY() + 16, walking_direction));
+    int fire_dir_x = 0;
+    int fire_dir_y = 0;
+
+    if (walking_direction == up)
+        fire_dir_y = 16;
+    else if (walking_direction == down)
+        fire_dir_y = -16;
+    else
+        fire_dir_x = 16;
+    getWorld()->add_actor(new Vortex(getBoard(),getWorld(),getX()+ fire_dir_x, getY() + fire_dir_y, walking_direction));
 }
 
 bool Player::if_have_vortex() const
@@ -367,6 +378,7 @@ void Player::doSomething()
         }
         moveAtAngle(getWalkingDirection(),2);
         ticks_to_move --;
+        die_roll = ticks_to_move/8;
         if (ticks_to_move == 0 )
             state = WAITING_TO_ROLL;
     }

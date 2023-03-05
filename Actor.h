@@ -47,6 +47,7 @@ class Player : public Actor
         int get_pState() const;
         int getStars() const;
         int getCoins() const;
+        int get_dice() const; 
         void updateCoins(int amt);
         void updateStars(int amt);
         void resetCoins();
