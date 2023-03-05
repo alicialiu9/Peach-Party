@@ -7,11 +7,11 @@
 class StudentWorld;
 class Board; 
 
-const int WAITING_TO_ROLL = 0;
-const int WALKING = 1;
-
 const int DEAD = 0;
 const int ALIVE = 1;
+
+const int WAITING_TO_ROLL = 0;
+const int WALKING = 1;
 
 const int E_WALKING = 0;
 const int E_PAUSED = 1;
@@ -22,11 +22,15 @@ class Actor : public GraphObject
     public:
         Actor(Board* b,StudentWorld* world, int imageID, double startX, double startY, int startDirection, int depth = 0, double size = 1.0): GraphObject(imageID, startX, startY, startDirection, depth,size), m_world(world), status(1), m_b(b) {};
         virtual void doSomething() = 0;
+        virtual bool is_a_square() const = 0;
+        virtual bool can_be_hit_by_vortex() const = 0;
         void changeStatus(int state) { status = state; }
         int getStatus();
         StudentWorld* getWorld() const { return m_world; }
         Board* getBoard() const { return m_b; }
-
+        bool available_dir(int dir);
+        bool is_at_fork(int dir);
+        virtual void hit_by_vortex();
     private:
         StudentWorld* m_world;
         int status;
@@ -57,15 +61,15 @@ class Player : public Actor
         void swap_coins();  // with other player
         void equip_with_vortex_projectile();
         bool if_have_vortex()const;
+        void give_vortex(); 
         void force_walk_direction(int dir, int angle);
         void set_at_dir_square();
         bool get_at_dir_square() const;
-        bool is_at_fork();
-        bool available_dir(int dir);
-    
     //  REDO :
         bool isWaiting();
         bool isWalking();
+        virtual bool is_a_square() const;
+        virtual bool can_be_hit_by_vortex() const;
     
     private:
         int player_num;
@@ -124,6 +128,8 @@ class Square :public ActivateOnPlayer
 {
     public:
         Square(Board* b, StudentWorld* world,int imageID, int x, int y, int direction): ActivateOnPlayer(b,world,imageID, x, y, direction, 1, 1.0) {};
+        bool is_a_square() const;
+        virtual bool can_be_hit_by_vortex() const;
     private:
 };
 
@@ -206,21 +212,33 @@ class EventSquare : public Square
 class Enemy: public ActivateOnPlayer
 {
     public:
-        Enemy(Board* b, StudentWorld* world,int imageID, int x, int y): ActivateOnPlayer(b,world,imageID, x, y, right, 0, 1.0), travel_distance(0), enemy_state(E_PAUSED), pause_counter(180), ticks_to_move(0){};
+        Enemy(Board* b, StudentWorld* world,int imageID, int x, int y): ActivateOnPlayer(b,world,imageID, x, y, right, 0, 1.0), travel_distance(0), enemy_state(E_PAUSED), pause_counter(180), ticks_to_move(0), walking_direction(right){};
         virtual void doSomething();
         void doActivity(Player* player);
+        virtual void specialPause(Player* player) = 0;
+        virtual void specialWalk(Player* player)= 0;
+        void change_to_new_legal_dir();
+        bool is_a_square() const;
+        void setWalkingDirection(int dir);
+        int getWalkingDirection() const;
+        virtual int rand_squares_to_move() = 0;
+        virtual bool can_be_hit_by_vortex() const;
+        virtual void hit_by_vortex();
     private:
         int travel_distance;
         int enemy_state;
         int pause_counter;
         int ticks_to_move;
+        int walking_direction;
 };
 
 class Bowser : public Enemy
 {
     public:
         Bowser(Board* b, StudentWorld* world, int x, int y): Enemy(b,world,IID_BOWSER, x, y){};
-            virtual void doSomething();
+        virtual void specialPause(Player* player);
+        virtual void specialWalk(Player* player);
+        virtual int rand_squares_to_move();
     private:
       
 };
@@ -229,7 +247,9 @@ class Boo : public Enemy
 {
     public:
         Boo(Board* b, StudentWorld* world, int x, int y): Enemy(b,world,IID_BOO, x, y){};
-        virtual void doSomething();
+        virtual void specialPause(Player* player);
+        virtual void specialWalk(Player* player);
+        virtual int rand_squares_to_move();
     private:
 };
 
@@ -237,9 +257,11 @@ class Boo : public Enemy
 class Vortex : public ActivatingObject
 {
     public:
-    Vortex(Board* b, StudentWorld* world,int x, int y, int direction): ActivatingObject(b,world,IID_VORTEX, x, y, direction, 0, 1.0), v_start_dir(direction){};
+    Vortex(Board* b, StudentWorld* world,int x, int y, int fire_direction): ActivatingObject(b,world,IID_VORTEX, x, y, right, 0, 1.0), v_start_dir(fire_direction){};
     virtual void doSomething();
     bool overlap_with_Baddie(Actor* actor);
+    bool is_a_square() const;
+    virtual bool can_be_hit_by_vortex() const;
     private:
         int v_start_dir;
 };

@@ -79,7 +79,6 @@ int StudentWorld::init()
                         case Board::boo:
                         {
                             add_actor(new Boo(bd,this, x*SPRITE_WIDTH, y*SPRITE_HEIGHT));
-                            break;
                             add_actor(new BlueCoinSquare(bd,this, x*SPRITE_WIDTH, y*SPRITE_HEIGHT));
                             break;
                         }
@@ -156,11 +155,15 @@ int StudentWorld::move()
     peach->doSomething();
     yoshi->doSomething();
     
-    // delete dead actors
-    //for (vector<Actor*>::iterator it = all_actors.begin(); it != all_actors.end();it++)
+    //delete dead actors
+    for (vector<Actor*>::iterator it = all_actors.begin(); it != all_actors.end(); it++)
     {
-        //if ((*it)->getStatus() == DEAD)
-            //delete (*it);
+        if ((*it)->getStatus() == DEAD)
+        {
+            delete (*it);
+            it = all_actors.erase(it);
+            it --;
+        }
     }
     
     setGameStatText(setGameStatTextHelper());
@@ -214,10 +217,34 @@ bool StudentWorld::is_there_a_square_at_location(int dest_x, int dest_y) const
 }
 
 // Get a pointer to the square at the specified location
-//GameObject* StudentWorld::get_square_at_location(double x, double y) const
-//{
-//
-//}
+Actor* StudentWorld::get_square_at_location(double x, double y) const
+{
+    for (int i = 0; i< all_actors.size(); i++)
+    {
+        if (all_actors[i]->is_a_square() && all_actors[i]-> getX() == x && all_actors[i]-> getX() == y)
+            return all_actors[i];
+    }
+    return nullptr;
+}
+
+Actor* StudentWorld::get_impacted_baddie(double x, double y)const
+{
+    for (int i = 0; i< all_actors.size(); i++)
+    {
+        if (all_actors[i]->can_be_hit_by_vortex())
+        {
+            int baddie_x = all_actors[i]->getX();
+            int baddie_upper_x = baddie_x + 15;
+            
+            int baddie_y = all_actors[i]->getY();
+            int baddie_upper_y = baddie_y + 15;
+            
+            if ((x+15) >= baddie_x || x <= baddie_upper_x || y<= baddie_upper_y || (y+15) >= baddie_y)
+                return all_actors[i];
+        }
+    }
+    return nullptr;
+}
 
 // get # of coins in the bank
 int StudentWorld::get_bank_coins() const

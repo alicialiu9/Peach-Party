@@ -21,15 +21,15 @@ public:
   ~StudentWorld(); //only place in written code that can call above 3 functions (cleanup)
     //Setgamestat
     std::string setGameStatTextHelper();
-    // Add a new actor to the StudentWorld (not for players, but all other game objects)
     void add_actor(Actor *actor);
     
      // Determine if there is a square at the specified location. Used to determine if a gameobject
      // like a player, enemy or vortex can move onto the specified location
      bool is_there_a_square_at_location(int dest_x, int dest_y) const;
-
      // Get a pointer to the square at the specified location
      Actor* get_square_at_location(double x, double y) const;
+    //return baddie that overlaps with vortex
+    Actor* get_impacted_baddie(double x, double y)const; 
      int get_bank_coins() const;
      void deposit_bank_coins(int coins);
      void reset_bank_coins();
@@ -39,6 +39,7 @@ public:
     Player* get_other_player(Player* p) const;
     Player* getPeach() const;
     Player* getYoshi() const;
+
     
 private:
     //container of pointers to objects

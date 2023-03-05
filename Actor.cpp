@@ -12,6 +12,83 @@ int Actor::getStatus()
     return status;
 }
 
+bool Actor::available_dir(int dir)
+{
+    int currentX = getX();
+    int currentY = getY();
+    getPositionInThisDirection(dir, 16, currentX, currentY);
+    if (getBoard()->getContentsOf(currentX/16, currentY/16) != Board::empty)
+        return true;
+    return false;
+}
+
+void Actor::hit_by_vortex()
+{
+    return;
+}
+bool Actor::is_at_fork(int dir)
+{
+    bool at_fork = false;
+    int num_paths = 0;
+    switch (dir)
+    {
+        case right:
+        {
+            if (!available_dir(left))
+            {
+                at_fork = false;
+                break;
+            }
+            if (available_dir(up))
+                num_paths++;
+            if (available_dir(down))
+                num_paths++;
+            if (available_dir(right))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+        case left:
+        {
+            if (available_dir(up))
+                num_paths++;
+            if (available_dir(down))
+                num_paths++;
+            if (available_dir(left))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+        case up:
+        {
+            if (available_dir(left))
+                num_paths++;
+            if (available_dir(right))
+                num_paths++;
+            if (available_dir(up))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+        case down:
+        {
+            if (available_dir(left))
+                num_paths++;
+            if (available_dir(right))
+                num_paths++;
+            if (available_dir(down))
+                num_paths++;
+            if (num_paths >= 2)
+                at_fork = true;
+            break;
+        }
+    }
+    return at_fork;
+}
+
 //PLAYER IMPLEMENTATION
 int Player::getStars() const {return n_stars; }
 
@@ -31,6 +108,15 @@ void Player::resetStars() { n_stars = 0;}
 
 int Player::get_pState() const {return state;}
 
+bool Player::is_a_square() const {return false;}
+
+bool Player::can_be_hit_by_vortex() const {return false;}
+
+void Player::give_vortex()
+{
+    if (has_Vortex == false)
+        has_Vortex = true;
+}
 bool Player::isWaiting()
 {
     if (state == WAITING_TO_ROLL)
@@ -50,6 +136,8 @@ void Player::teleport_me_to_random_sq()
     int y = getY();
     getWorld()->get_random_square_location(x,y);
     moveTo(x*SPRITE_WIDTH, y*SPRITE_HEIGHT);
+    
+    walking_direction = 1;
 }
 
 void Player::swap_positions(Player* other)
@@ -100,9 +188,7 @@ void Player::swap_coins()
 }
 void Player::equip_with_vortex_projectile()
 {
-    if (has_Vortex == false)
-   // equip with new vortex
-        has_Vortex = true;
+    getWorld()->add_actor(new Vortex(getBoard(),getWorld(),getX()+ 16, getY() + 16, walking_direction));
 }
 
 bool Player::if_have_vortex() const
@@ -120,83 +206,61 @@ bool Player::get_at_dir_square() const
     return at_dir_square;
 }
 
-bool Player::available_dir(int dir)
-{
-    int currentX = getX();
-    int currentY = getY();
-    getPositionInThisDirection(dir, 16, currentX, currentY);
-    if (getBoard()->getContentsOf(currentX/16, currentY/16) != Board::empty)
-        return true;
-    return false;
-}
-
-bool Player::is_at_fork()
-{
-    bool at_fork = false;
-    int num_paths = 0;
-    switch (walking_direction)
-    {
-        case right:
-        {
-            if (available_dir(up))
-                num_paths++;
-            if (available_dir(down))
-                num_paths++;
-            if (available_dir(right))
-                num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            if (!available_dir(left))
-                at_fork = false;
-            break;
-        }
-        case left:
-        {
-            if (available_dir(up))
-                num_paths++;
-            if (available_dir(down))
-                num_paths++;
-            if (available_dir(left))
-                num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            break;
-        }
-        case up:
-        {
-            if (available_dir(left))
-                num_paths++;
-            if (available_dir(right))
-                num_paths++;
-            if (available_dir(up))
-                num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            break;
-        }
-        case down:
-        {
-            if (available_dir(left))
-                num_paths++;
-            if (available_dir(right))
-                num_paths++;
-            if (available_dir(down))
-                num_paths++;
-            if (num_paths >= 2)
-                at_fork = true;
-            break;
-        }
-    }
-    return at_fork;
-}
-
 void Player::doSomething()
 {
     if (state == WAITING_TO_ROLL)
     {
-        // if invalid direction from teleported
-        //pick random valid direction that has a square
-        //update walking direction 180 for left, 0 for all others
+        if (walking_direction != right && walking_direction != left && walking_direction != up && walking_direction!= down)
+        {
+            bool got_valid_dir = false;
+            while(got_valid_dir == false)
+            {
+                int r = randInt(0,3); // 0 right, 1 left, 2 up, 3 down
+                switch (r)
+                {
+                    case 0:
+                    {
+                        if (available_dir(right))
+                        {
+                            walking_direction = right;
+                            got_valid_dir = true;
+                        }
+                        break;
+                    }
+                    case 1:
+                    {
+                        if (available_dir(left))
+                        {
+                            walking_direction = left;
+                            got_valid_dir = true;
+                        }
+                        break;
+                    }
+                    case 2:
+                    {
+                        if (available_dir(up))
+                        {
+                            walking_direction = up;
+                            got_valid_dir = true;
+                        }
+                        break;
+                    }
+                    case 3:
+                    {
+                        if (available_dir(down))
+                        {
+                            walking_direction = down;
+                            got_valid_dir = true;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (walking_direction == left)
+                setDirection(left);
+            else
+                setDirection(right);
+        }
         switch (getWorld()->getAction(player_num))
         {
             case ACTION_ROLL:
@@ -208,9 +272,12 @@ void Player::doSomething()
             }
             case ACTION_FIRE:
             {
-                // introduce new vortex
-                getWorld()->playSound(SOUND_PLAYER_FIRE);
-                has_Vortex = false;
+                if (has_Vortex == true)
+                {
+                    equip_with_vortex_projectile();
+                    getWorld()->playSound(SOUND_PLAYER_FIRE);
+                    has_Vortex = false;
+                }
                 break;
             }
             default:
@@ -221,7 +288,7 @@ void Player::doSomething()
     {
         if (!get_at_dir_square()) // if not at a direction square
         {
-            if (is_at_fork())
+            if (getX() % 16 == 0 && getY() % 16 == 0 && is_at_fork(walking_direction))
             {
                 int player_action = getWorld()->getAction(player_num);
                 if (player_action == ACTION_LEFT || player_action == ACTION_RIGHT || player_action == ACTION_UP || player_action == ACTION_DOWN)
@@ -233,6 +300,7 @@ void Player::doSomething()
                             walking_direction = left;
                             setDirection(left);
                         }
+                        else return;
                     }
                     else if (player_action == ACTION_RIGHT)
                     {
@@ -241,6 +309,7 @@ void Player::doSomething()
                             walking_direction = right;
                             setDirection(right);
                         }
+                        else return;
                     }
                     else if (player_action == ACTION_UP)
                     {
@@ -249,6 +318,7 @@ void Player::doSomething()
                             walking_direction = up;
                             setDirection(right);
                         }
+                        else return;
                     }
                     else if (player_action == ACTION_DOWN)
                     {
@@ -257,13 +327,15 @@ void Player::doSomething()
                             walking_direction = down;
                             setDirection(right);
                         }
+                        else return;
                     }
+                    else return;
                 }
+
             }
-//            else return;
+
         }
-        
-        
+    
         int xnew = getX();
         int ynew = getY();
         getPositionInThisDirection(walking_direction,16, xnew, ynew);
@@ -382,6 +454,14 @@ bool ActivateOnPlayer::new_player_moved_over(Player* player)
     return false;
 }
 
+//SQUAREIMPLEMENTATION
+ 
+bool Square::is_a_square() const
+{
+    return true;
+}
+
+bool Square::can_be_hit_by_vortex() const {return false;}
 
 // COINSQUARE IMPLEMENTATION
 void CoinSquare::doSomething()
@@ -585,7 +665,7 @@ void EventSquare::inform_swap(Player* player, Player* other)
 
 void EventSquare::give_vortex(Player* player)
 {
-    player->equip_with_vortex_projectile();
+    player->give_vortex();
     getWorld()->playSound(SOUND_GIVE_VORTEX);
 }
 
@@ -624,10 +704,17 @@ void EventSquare::doSomething()
 }
 
 //VORTEX IMPLEMENTATION
+bool Vortex::is_a_square() const
+{
+    return false; 
+}
+
 bool Vortex::overlap_with_Baddie(Actor* actor)
 {
     return true; 
 }
+
+bool Vortex::can_be_hit_by_vortex() const {return false;}
 
 void Vortex::doSomething()
 {
@@ -643,46 +730,162 @@ void Vortex::doSomething()
     {
         changeStatus(DEAD);
     }
+    Actor* impacted_baddie = getWorld()->get_impacted_baddie(getX(), getY());
+     if (impacted_baddie != nullptr)
+    {
+        impacted_baddie->hit_by_vortex();
+        changeStatus(DEAD);
+        getWorld()->playSound(SOUND_HIT_BY_VORTEX);
+    }
 }
 
 // ENEMY IMPLEMENTATION
+bool Enemy::is_a_square() const
+{
+    return false;
+}
+
+bool Enemy::can_be_hit_by_vortex() const {return true;}
+
+void Enemy::setWalkingDirection(int dir)
+{
+    walking_direction = dir; 
+}
+
+int Enemy::getWalkingDirection() const
+{
+    return walking_direction;
+}
+
+void Enemy::hit_by_vortex()
+{
+    int x = getX();
+    int y = getY();
+    getWorld()->get_random_square_location(x,y);
+    moveTo(x*SPRITE_WIDTH, y*SPRITE_HEIGHT);
+
+    walking_direction = right;
+    setDirection(right);
+    
+    enemy_state = E_PAUSED;
+    pause_counter = 180;
+}
+
+void Enemy::change_to_new_legal_dir()
+{
+    bool got_valid_dir = false;
+    while(got_valid_dir == false)
+    {
+        int r = randInt(0,3); // 0 right, 1 left, 2 up, 3 down
+        switch (r)
+        {
+            case 0:
+            {
+                if (available_dir(right))
+                {
+                    walking_direction = right;
+                    got_valid_dir = true;
+                }
+                break;
+            }
+            case 1:
+            {
+                if (available_dir(left))
+                {
+                    walking_direction = left;
+                    got_valid_dir = true;
+                }
+                break;
+            }
+            case 2:
+            {
+                if (available_dir(up))
+                {
+                    walking_direction = up;
+                    got_valid_dir = true;
+                }
+                break;
+            }
+            case 3:
+            {
+                if (available_dir(down))
+                {
+                    walking_direction = down;
+                    got_valid_dir = true;
+                }
+                break;
+            }
+        }
+    }
+    if (walking_direction == left)
+        setDirection(left);
+    else
+        setDirection(right);
+}
 
 void Enemy::doActivity(Player* player)
 {
     if (enemy_state == E_PAUSED)
     {
         if (new_player_landed(player))
-        {
-            int random = randInt(0,1);
-            if (random == 0)
-            {
-                player->resetCoins();
-                player->resetStars();
-                getWorld()->playSound(SOUND_BOWSER_ACTIVATE);
-            }
-            
-        }
+            specialPause(player);
         pause_counter --;
         if ( pause_counter <= 0)
         {
-            travel_distance = randInt(1,10);
+            travel_distance = rand_squares_to_move();
             ticks_to_move = travel_distance * 8;
-            for(;;)
-            {
-                if
-                
-            }
-            
-            
+            change_to_new_legal_dir();
+            enemy_state = E_WALKING;
         }
     }
-        
-    
     else if (enemy_state == E_WALKING)
     {
-        
+        if( getX() % 16 == 0 && getY() % 16 == 0 && is_at_fork(walking_direction))
+        {
+            change_to_new_legal_dir();
+        }
+        else
+        {
+            int xnew = getX();
+            int ynew = getY();
+            getPositionInThisDirection(walking_direction,16, xnew, ynew);
+            if (xnew % 16 == 0 && ynew % 16 == 0)
+            {
+                if (getBoard()->getContentsOf(xnew/SPRITE_WIDTH, ynew/SPRITE_HEIGHT) == Board::empty)
+                {
+                    if (walking_direction == right || walking_direction == left)
+                    {
+                        if(available_dir(up))
+                            setWalkingDirection(up);
+                        else
+                            setWalkingDirection(down);
+                    }
+                    else
+                    {
+                        if(available_dir(right))
+                            setWalkingDirection(right);
+                        
+                        else
+                            setWalkingDirection(left);
+                    }
+                    
+                    if (getWalkingDirection() == left)
+                        setDirection(left);
+                    else
+                        setDirection(right);
+                }
+            }
+            
+        }
+        moveAtAngle(walking_direction, 2);
+        ticks_to_move --;
+        if (ticks_to_move == 0)
+        {
+            enemy_state = E_PAUSED;
+            pause_counter = 180;
+            specialWalk(player);
+        }
     }
-    
 }
 
 
@@ -690,18 +893,60 @@ void Enemy::doSomething()
 {
     doActivity(r_Yoshi());
     doActivity(r_Peach());
-    
 }
 
 
 //BOWSER IMPLEMENTATION
-void Bowser::doSomething()
+int Bowser::rand_squares_to_move()
 {
+    return randInt(1,10);
+}
+
+void Bowser::specialPause(Player* player)
+{
+    int random = randInt(0,1);
+    if (random == 0)
+    {
+        player->resetCoins();
+        player->resetStars();
+        getWorld()->playSound(SOUND_BOWSER_ACTIVATE);
+    }
+}
+
+void Bowser::specialWalk(Player* player)
+{
+    int r = randInt(1,4);
+    if (r == 1)
+    {
+        Actor* square = getWorld()->get_square_at_location(getX(), getY());
+        delete square;
+        getWorld()->add_actor(new DroppingSquare(getBoard(), getWorld(), getX()*SPRITE_WIDTH, getY()* SPRITE_HEIGHT));
+        getWorld()->playSound(SOUND_DROPPING_SQUARE_CREATED);
+    }
     
 }
 
+
 //BOO IMPLEMENTATION
-void Boo::doSomething()
+int Boo::rand_squares_to_move()
+{
+    return randInt(1,3);
+}
+
+void Boo::specialPause(Player* player)
+{
+    int random = randInt(0,1);
+    if (random == 0)
+    {
+        player->swap_coins();
+    }
+    else
+        player->swap_stars();
+    
+    getWorld()->playSound(SOUND_BOO_ACTIVATE);
+}
+
+void Boo::specialWalk(Player* player)
 {
     
 }
