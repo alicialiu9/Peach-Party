@@ -235,10 +235,8 @@ void StudentWorld::add_dropping_square_at_location(int x, int y)
     {
         if (all_actors[i]->is_a_square() && all_actors[i]->getX() == x && all_actors[i]->getY() == y)
         {
-//           all_actors[i]->changeStatus(DEAD);
-            delete all_actors[i];
-            std::cerr << "square removed" << std::endl;
-            all_actors[i] = new DroppingSquare(bd, this, x, y);
+           all_actors[i]->changeStatus(DEAD);
+           add_actor(new DroppingSquare(bd, this, x, y));
             break;
         }
     }

@@ -170,7 +170,7 @@ void Player::equip_with_vortex_projectile()
         fire_dir_x = -16;
     else
         fire_dir_x = 16;
-    getWorld()->add_actor(new Vortex(getBoard(),getWorld(),getX()+ fire_dir_x, getY() + fire_dir_y, walking_direction));
+    getWorld()->add_actor(new Vortex(walking_direction, getBoard(),getWorld(),getX()+ fire_dir_x, getY() + fire_dir_y));
 }
 
 bool Player::if_have_vortex() const
@@ -450,7 +450,7 @@ bool Square::can_be_hit_by_vortex() const {return false;}
 // COINSQUARE IMPLEMENTATION
 void CoinSquare::doSomething()
 {
-    if (this != nullptr && this->getStatus() == DEAD)
+    if (this->getStatus() == DEAD)
         return;
     
     if (new_player_landed(r_Yoshi()))
@@ -884,7 +884,6 @@ void Bowser::specialWalk()
     if (r == 1)
     {
         getWorld()->add_dropping_square_at_location(getX(), getY());
-        getWorld()->add_actor(new DroppingSquare(getBoard(),getWorld(),getX(),getY()));
         std::cerr << "new dropping square" << std::endl;
         getWorld()->playSound(SOUND_DROPPING_SQUARE_CREATED);
     }

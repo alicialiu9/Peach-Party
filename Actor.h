@@ -258,7 +258,7 @@ class Boo : public Enemy
 class Vortex : public ActivatingObject
 {
     public:
-    Vortex(Board* b, StudentWorld* world,int x, int y, int fire_direction): ActivatingObject(b,world,IID_VORTEX, x, y, right, 0, 1.0), v_start_dir(fire_direction){};
+    Vortex(int fire_direction, Board* b, StudentWorld* world,int x, int y): ActivatingObject(b,world,IID_VORTEX, x, y, right,0, 1.0), v_start_dir(fire_direction){};
     virtual void doSomething();
     bool is_a_square() const;
     virtual bool can_be_hit_by_vortex() const;
