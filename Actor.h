@@ -25,7 +25,7 @@ class Actor : public GraphObject
         virtual bool is_a_square() const = 0;
         virtual bool can_be_hit_by_vortex() const = 0;
         void changeStatus(int state) { status = state; }
-        int getStatus();
+        int getStatus() const;
         StudentWorld* getWorld() const { return m_world; }
         Board* getBoard() const { return m_b; }
         bool available_dir(int dir);
@@ -260,7 +260,6 @@ class Vortex : public ActivatingObject
     public:
     Vortex(Board* b, StudentWorld* world,int x, int y, int fire_direction): ActivatingObject(b,world,IID_VORTEX, x, y, right, 0, 1.0), v_start_dir(fire_direction){};
     virtual void doSomething();
-    bool overlap_with_Baddie(Actor* actor);
     bool is_a_square() const;
     virtual bool can_be_hit_by_vortex() const;
     private:

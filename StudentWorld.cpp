@@ -149,7 +149,7 @@ int StudentWorld::move()
     // Notice that the return value GWSTATUS_NOT_IMPLEMENTED will cause our framework to end the game.
     for (vector<Actor*>::iterator it = all_actors.begin(); it != all_actors.end();it++)
     {
-        if ((*it)->getStatus() == ALIVE)
+        if ((*it)!= nullptr && (*it)->getStatus() == ALIVE)
             (*it)->doSomething();
     }
     peach->doSomething();
@@ -216,13 +216,15 @@ bool StudentWorld::is_there_a_square_at_location(int dest_x, int dest_y) const
     return false;
 }
 
-// Get a pointer to the square at the specified location
-Actor* StudentWorld::get_square_at_location(int x, int y) const
+// get square at the specified location
+Actor* StudentWorld::get_square_at_location(int x, int y)
 {
     for (int i = 0; i< all_actors.size(); i++)
     {
         if (all_actors[i]->is_a_square() && all_actors[i]-> getX() == x && all_actors[i]-> getX() == y)
+        {
             return all_actors[i];
+        }
     }
     return nullptr;
 }
@@ -233,8 +235,10 @@ void StudentWorld::add_dropping_square_at_location(int x, int y)
     {
         if (all_actors[i]->is_a_square() && all_actors[i]->getX() == x && all_actors[i]->getY() == y)
         {
+//           all_actors[i]->changeStatus(DEAD);
             delete all_actors[i];
-            all_actors[i] = nullptr;
+            std::cerr << "square removed" << std::endl;
+            all_actors[i] = new DroppingSquare(bd, this, x, y);
             break;
         }
     }
@@ -251,8 +255,8 @@ Actor* StudentWorld::get_impacted_baddie(int x, int y)const
             
             int baddie_y = all_actors[i]->getY();
             int baddie_upper_y = baddie_y + 15;
-            
-            if ((x+15) >= baddie_x || x <= baddie_upper_x || y<= baddie_upper_y || (y+15) >= baddie_y)
+        
+            if ( (!(x > baddie_upper_x || baddie_x > x+15)) && (!( y > baddie_upper_y || baddie_y > y+15 )))
                 return all_actors[i];
         }
     }

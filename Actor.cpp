@@ -7,7 +7,7 @@
 
 //ACTOR IMPLEMENTATION
 
-int Actor::getStatus()
+int Actor::getStatus() const
 {
     return status;
 }
@@ -32,15 +32,15 @@ bool Actor::is_at_fork(int dir)
     int num_paths = 0;
     switch (dir)
     {
-//        case right:
-//            if (!available_dir(left))
-//            {
-//                at_fork = false;
-//                break;
-//            }
-//        case left:
+        case right:
+            if (!available_dir(left))
+            {
+                at_fork = false;
+                break;
+            }
+        case left:
         case up:
-//        case down:
+        case down:
         {
             if (available_dir(up))
                 num_paths++;
@@ -166,6 +166,8 @@ void Player::equip_with_vortex_projectile()
         fire_dir_y = 16;
     else if (walking_direction == down)
         fire_dir_y = -16;
+    else if (walking_direction == left)
+        fire_dir_x = -16;
     else
         fire_dir_x = 16;
     getWorld()->add_actor(new Vortex(getBoard(),getWorld(),getX()+ fire_dir_x, getY() + fire_dir_y, walking_direction));
@@ -270,46 +272,47 @@ void Player::doSomething()
         {
             if (getX() % 16 == 0 && getY() % 16 == 0 && is_at_fork(walking_direction))
             {
-                int player_action = getWorld()->getAction(player_num);
-                if (player_action == ACTION_LEFT || player_action == ACTION_RIGHT || player_action == ACTION_UP || player_action == ACTION_DOWN)
+                switch (getWorld()->getAction(player_num))
                 {
-                    if (player_action == ACTION_LEFT)
+                    case ACTION_LEFT:
                     {
                         if (walking_direction!=left && available_dir(left))
                         {
                             walking_direction = left;
                             setDirection(left);
                         }
-                        else return;
+                        break;
                     }
-                    else if (player_action == ACTION_RIGHT)
+                    case ACTION_RIGHT:
                     {
                         if (walking_direction!=right && available_dir(right))
                         {
                             walking_direction = right;
                             setDirection(right);
                         }
-                        else return;
+                        break;
                     }
-                    else if (player_action == ACTION_UP)
+                    case ACTION_UP:
                     {
                         if (walking_direction!=up && available_dir(up))
                         {
                             walking_direction = up;
                             setDirection(right);
                         }
-                        else return;
+                        break;
                     }
-                    else if (player_action == ACTION_DOWN)
+                    case ACTION_DOWN:
                     {
                         if (walking_direction!=down && available_dir(down))
                         {
                             walking_direction = down;
                             setDirection(right);
+                          
                         }
-                        else return;
+                        break;
                     }
-                    else return;
+                    default:
+                        return;
                 }
 
             }
@@ -447,7 +450,7 @@ bool Square::can_be_hit_by_vortex() const {return false;}
 // COINSQUARE IMPLEMENTATION
 void CoinSquare::doSomething()
 {
-    if (this->getStatus() == DEAD)
+    if (this != nullptr && this->getStatus() == DEAD)
         return;
     
     if (new_player_landed(r_Yoshi()))
@@ -496,13 +499,11 @@ void StarSquare::doSomething()
     if (new_activation(r_Yoshi()) && (r_Yoshi()->isWaiting() || r_Yoshi()->isWalking()))
     {
         giveStar(r_Yoshi());
-        std::cerr << "yoshi went over star" << std::endl;
     }
     
     if (new_activation(r_Peach()) && (r_Peach()->isWaiting() || r_Peach()->isWalking()))
     {
         giveStar(r_Peach());
-        std::cerr << "peach went over star" << std::endl;
     }
         
 }
@@ -537,24 +538,20 @@ void BankSquare::doSomething()
 {
     if (new_player_landed(r_Yoshi()))
     {
-        std::cerr << "yoshi took from bank" << std::endl;
         withdraw(r_Yoshi());
     }
     
     if (overlap(r_Yoshi(), this) && r_Yoshi()->isWalking())
     {
-        std::cerr <<"yoshi walked over bank square" << std::endl;
         deposit(r_Yoshi());
     }
     if (new_player_landed(r_Peach()))
     {
-        std::cerr << "peach took from bank" << std::endl;
         withdraw(r_Peach());
     }
     
     if (overlap(r_Peach(),this) && r_Peach()->isWalking())
     {
-        std::cerr <<"peach walked over bank square" << std::endl;
         deposit(r_Peach());
     }
 }
@@ -575,7 +572,6 @@ void DirectionalSquare::doSomething()
             r_Yoshi()->setDirection(left);
         else
             r_Yoshi()->setDirection(right);
-        std::cerr << "yoshi was forced to change walking direction " << getForcingDir() << std::endl;
     }
     if (new_activation(r_Peach()) && (r_Peach()->isWaiting() || r_Peach()->isWalking()))
     {
@@ -585,7 +581,6 @@ void DirectionalSquare::doSomething()
             r_Peach()->setDirection(left);
         else
             r_Peach()->setDirection(right);
-        std::cerr << "peach was forced to change walking direction " << getForcingDir() << std::endl;
     }
 }
 
@@ -616,12 +611,10 @@ void DroppingSquare::doSomething()
 {
     if (new_player_landed(r_Yoshi()))
     {
-        std::cerr << "yoshi dropping square" << std::endl;
         doActivity(r_Yoshi());
     }
     if (new_player_landed(r_Peach()))
     {
-        std::cerr << "peach dropping square" << std::endl;
         doActivity(r_Peach());
     }
 }
@@ -637,7 +630,6 @@ void EventSquare::inform_teleport(Player* player)
 void EventSquare::inform_swap(Player* player, Player* other)
 {
     player->swap_positions(other);
-    std::cerr << "players swapped" << std::endl;
     int temp = getActivated(player);
     setActivated(player,getActivated(other));
     setActivated(other, temp);
@@ -656,16 +648,13 @@ void EventSquare::doActivity(Player* player, Player* other)
     if (action_num == 0)
     {
         inform_teleport(player);
-        std::cerr << "teleported me" << std::endl;
     }
     else if (action_num == 1)
     {
-        std::cerr << "swap square " << std::endl;
         inform_swap(player,other);
     }
     else
     {
-        std::cerr << "vortex squre" << std::endl;
         give_vortex(player);
     }
 }
@@ -674,12 +663,10 @@ void EventSquare::doSomething()
 {
     if (new_player_landed(r_Yoshi()))
     {
-        std::cerr << "yoshi" << std::endl;
         doActivity(r_Yoshi(), r_Peach());
     }
     if (new_player_landed(r_Peach()))
     {
-        std::cerr << "peach" << std::endl;
         doActivity(r_Peach(), r_Yoshi());
     }
 }
@@ -690,15 +677,11 @@ bool Vortex::is_a_square() const
     return false; 
 }
 
-bool Vortex::overlap_with_Baddie(Actor* actor)
-{
-    return true; 
-}
-
 bool Vortex::can_be_hit_by_vortex() const {return false;}
 
 void Vortex::doSomething()
 {
+    std::cerr << "get vortex status" << std::endl;
     if (getStatus() == DEAD)
         return;
         
@@ -714,6 +697,7 @@ void Vortex::doSomething()
     Actor* impacted_baddie = getWorld()->get_impacted_baddie(getX(), getY());
      if (impacted_baddie != nullptr)
     {
+        std::cerr << "baddie hit" << std::endl;
         impacted_baddie->hit_by_vortex();
         changeStatus(DEAD);
         getWorld()->playSound(SOUND_HIT_BY_VORTEX);
@@ -901,6 +885,7 @@ void Bowser::specialWalk()
     {
         getWorld()->add_dropping_square_at_location(getX(), getY());
         getWorld()->add_actor(new DroppingSquare(getBoard(),getWorld(),getX(),getY()));
+        std::cerr << "new dropping square" << std::endl;
         getWorld()->playSound(SOUND_DROPPING_SQUARE_CREATED);
     }
     
@@ -921,7 +906,9 @@ void Boo::specialPause(Player* player)
         player->swap_coins();
     }
     else
+    {
         player->swap_stars();
+    }
     
     getWorld()->playSound(SOUND_BOO_ACTIVATE);
 }
