@@ -64,7 +64,7 @@ class Player : public Actor
         bool if_have_vortex()const;
         void give_vortex(); 
         void force_walk_direction(int dir, int angle);
-        void set_at_dir_square();
+        void set_at_dir_square(bool value);
         bool get_at_dir_square() const;
     //  REDO :
         bool isWaiting();
@@ -220,7 +220,7 @@ class Enemy: public ActivateOnPlayer
         virtual void specialWalk()= 0;
         void change_to_new_legal_dir();
         bool is_a_square() const;
-        void setWalkingDirection(int dir);
+        void setEnemyWalkingDirection(int dir);
         int getWalkingDirection() const;
         virtual int rand_squares_to_move() = 0;
         virtual bool can_be_hit_by_vortex() const;

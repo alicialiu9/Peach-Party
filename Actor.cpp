@@ -33,11 +33,11 @@ bool Actor::is_at_fork(int dir)
     switch (dir)
     {
         case right:
-            if (!available_dir(left))
-            {
-                at_fork = false;
-                break;
-            }
+//            if (!available_dir(left))
+//            {
+//                at_fork = false;
+//                break;
+//            }
         case left:
         case up:
         case down:
@@ -178,9 +178,9 @@ bool Player::if_have_vortex() const
     return has_Vortex;
 }
 
-void Player::set_at_dir_square()
+void Player::set_at_dir_square(bool value)
 {
-    at_dir_square = true;
+    at_dir_square = value;
 }
 
 bool Player::get_at_dir_square() const
@@ -268,7 +268,8 @@ void Player::doSomething()
     }
     if (state == WALKING)
     {
-        if (!get_at_dir_square()) // if not at a direction square
+        if (get_at_dir_square()) ; // if not at a direction square
+        else
         {
             if (getX() % 16 == 0 && getY() % 16 == 0 && is_at_fork(walking_direction))
             {
@@ -276,39 +277,43 @@ void Player::doSomething()
                 {
                     case ACTION_LEFT:
                     {
-                        if (walking_direction!=left && available_dir(left))
+                        if (walking_direction!=right && available_dir(left))
                         {
                             walking_direction = left;
                             setDirection(left);
                         }
+                        else return;
                         break;
                     }
                     case ACTION_RIGHT:
                     {
-                        if (walking_direction!=right && available_dir(right))
+                        if (walking_direction!=left && available_dir(right))
                         {
                             walking_direction = right;
                             setDirection(right);
                         }
+                        else return;
                         break;
                     }
                     case ACTION_UP:
                     {
-                        if (walking_direction!=up && available_dir(up))
+                        if (walking_direction!=down && available_dir(up))
                         {
                             walking_direction = up;
                             setDirection(right);
                         }
+                        else return;
                         break;
                     }
                     case ACTION_DOWN:
                     {
-                        if (walking_direction!=down && available_dir(down))
+                        if (walking_direction!=up && available_dir(down))
                         {
                             walking_direction = down;
                             setDirection(right);
                           
                         }
+                        else return;
                         break;
                     }
                     default:
@@ -318,7 +323,7 @@ void Player::doSomething()
             }
 
         }
-    
+        set_at_dir_square(false);
         int xnew = getX();
         int ynew = getY();
         getPositionInThisDirection(walking_direction,16, xnew, ynew);
@@ -566,7 +571,7 @@ void DirectionalSquare::doSomething()
 {
     if (new_activation(r_Yoshi()) && (r_Yoshi()->isWaiting() || r_Yoshi()->isWalking()))
     {
-        r_Yoshi()->set_at_dir_square();
+        r_Yoshi()->set_at_dir_square(true);
         r_Yoshi()->setWalkingDirection(getForcingDir());
         if (getForcingDir() == 180)
             r_Yoshi()->setDirection(left);
@@ -575,7 +580,7 @@ void DirectionalSquare::doSomething()
     }
     if (new_activation(r_Peach()) && (r_Peach()->isWaiting() || r_Peach()->isWalking()))
     {
-        r_Peach()->set_at_dir_square();
+        r_Peach()->set_at_dir_square(true);
         r_Peach()->setWalkingDirection(getForcingDir());
         if (getForcingDir() == 180)
             r_Peach()->setDirection(left);
@@ -644,7 +649,8 @@ void EventSquare::give_vortex(Player* player)
 
 void EventSquare::doActivity(Player* player, Player* other)
 {
-    int action_num = randInt(0,2);
+    int action_num = 2;
+    // randInt(0,2);
     if (action_num == 0)
     {
         inform_teleport(player);
@@ -684,16 +690,17 @@ void Vortex::doSomething()
     std::cerr << "get vortex status" << std::endl;
     if (getStatus() == DEAD)
         return;
+    
+    int vortex_x;    int vortex_y;
         
-    moveAtAngle(v_start_dir, 2);
+    getPositionInThisDirection(v_start_dir, 2, vortex_x, vortex_y);
+    moveTo(vortex_x,vortex_y);
     
-    int vortex_x = getX();
-    int vortex_y = getY();
-    
-    if(vortex_x <= 0 || vortex_x >= VIEW_WIDTH || vortex_y<=0 || vortex_y >= VIEW_HEIGHT)
+    if(vortex_x < 0 || vortex_x >= VIEW_WIDTH || vortex_y < 0 || vortex_y >= VIEW_HEIGHT)
     {
         changeStatus(DEAD);
     }
+    
     Actor* impacted_baddie = getWorld()->get_impacted_baddie(getX(), getY());
      if (impacted_baddie != nullptr)
     {
@@ -712,7 +719,7 @@ bool Enemy::is_a_square() const
 
 bool Enemy::can_be_hit_by_vortex() const {return true;}
 
-void Enemy::setWalkingDirection(int dir)
+void Enemy::setEnemyWalkingDirection(int dir)
 {
     walking_direction = dir; 
 }
@@ -821,17 +828,17 @@ void Enemy::doActivity(Player* player)
                     if (walking_direction == right || walking_direction == left)
                     {
                         if(available_dir(up))
-                            setWalkingDirection(up);
+                            setEnemyWalkingDirection(up);
                         else
-                            setWalkingDirection(down);
+                            setEnemyWalkingDirection(down);
                     }
                     else
                     {
                         if(available_dir(right))
-                            setWalkingDirection(right);
+                            setEnemyWalkingDirection(right);
                         
                         else
-                            setWalkingDirection(left);
+                            setEnemyWalkingDirection(left);
                     }
                     
                     if (getWalkingDirection() == left)
@@ -874,6 +881,7 @@ void Bowser::specialPause(Player* player)
     {
         player->resetCoins();
         player->resetStars();
+        std::cerr<<"robbed"<<std::endl;
         getWorld()->playSound(SOUND_BOWSER_ACTIVATE);
     }
 }
@@ -903,10 +911,12 @@ void Boo::specialPause(Player* player)
     if (random == 0)
     {
         player->swap_coins();
+        std::cerr<<"swapped coins"<<std::endl;
     }
     else
     {
         player->swap_stars();
+        std::cerr<<"swapped stars"<<std::endl;
     }
     
     getWorld()->playSound(SOUND_BOO_ACTIVATE);
